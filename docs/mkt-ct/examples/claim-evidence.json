@@ -1,0 +1,46 @@
+{
+  "contract_version": "0.1",
+  "fixture_type": "synthetic_documentation_only",
+  "workspace_id": "ws-synthetic",
+  "project_id": "project-synthetic",
+  "artifact_id": "article-synthetic",
+  "version": 1,
+  "sources": [
+    {
+      "source_id": "source-synthetic-01",
+      "source_code": "SRC-001",
+      "origin_type": "SYNTHETIC",
+      "title": "Ghi chú nghiên cứu tổng hợp minh họa",
+      "origin_ref": "synthetic/research-note-01.md",
+      "publisher": "Synthetic fixture",
+      "published_at": null,
+      "accessed_at": null,
+      "locator": "Mục 2, đoạn 1",
+      "usage_rights_status": "UNKNOWN",
+      "trust_notes": "Reference minh họa, không phải file đã fetch/kiểm chứng hoặc nguồn thật."
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "claim-synthetic-01",
+      "claim_text": "Trong bộ fixture, nhóm A có 12 mục.",
+      "claim_type": "STAT",
+      "content_locator": "body.section-2.paragraph-1",
+      "evidence_status": "NOT_VERIFIED",
+      "source_refs": [
+        {
+          "source_id": "source-synthetic-01",
+          "source_code": "SRC-001",
+          "location_ref": "Mục 2, đoạn 1",
+          "excerpt": "Nhóm A: 12 mục. Dữ liệu tổng hợp minh họa.",
+          "evidence_relation": "CONTEXT"
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Mọi ID và nội dung là synthetic; chưa materialize UUID hoặc BIGINT FK.",
+    "Có source reference không đồng nghĩa đã đối chiếu được bằng chứng.",
+    "Không đủ căn cứ PASS QA hoặc phát hành."
+  ]
+}

@@ -1,0 +1,81 @@
+flowchart TB
+    %% PROPOSED 2026-10-27. Target architecture, not current runtime.
+    %% DEC-007: Java 21 / Boot 4.1.1 / auth-user-JWT / MariaDB + Flyway BASE-01.
+    subgraph CLIENT["Client - đề xuất"]
+        UI["Virtual Office Web<br/>React / Next.js (chưa chốt)<br/>phòng agent, task, duyệt, activity"]
+    end
+
+    subgraph BACKEND["Spring Boot - Modular Monolith (đề xuất)"]
+        direction TB
+        API["API Layer<br/>REST + SSE ưu tiên<br/>JWT identity + quyền workspace<br/>lưu task, trả receipt; không chờ LLM"]
+        subgraph FOUNDATION["Nền tảng"]
+            AUTH["auth + user (source đã có)<br/>JWT, đăng ký, đăng nhập<br/>giữ users / BIGINT ID"]
+            WSP["workspace + project (mở rộng)<br/>brand profile, thành viên, quyền"]
+        end
+        subgraph ENGINE["Lõi điều phối"]
+            ORCH["orchestration<br/>Planner LLM đề xuất DAG<br/>Scheduler, deadline, merge bằng code"]
+            TASK["task engine<br/>state, dependency, checkpoint<br/>lease, retry, idempotency"]
+            RUNTIME["agent runtime<br/>AgentRunner, prompt version<br/>structured output, guardrail"]
+        end
+        subgraph CAPS["Năng lực của agent"]
+            AGENTS["agent registry<br/>10 chuyên gia + Orchestrator = 11<br/>prompt + schema + model"]
+            SKILLS["skill / tool gateway<br/>kiểm quyền, approval, credential<br/>search, PDF, Sheets, email, Canva, ads, CMS"]
+            KB["knowledge + memory<br/>RAG, ngữ cảnh project<br/>lọc scope trước retrieval"]
+        end
+        subgraph OUTPUT["Sản phẩm và kiểm soát"]
+            ARTI["artifact + source + claim<br/>version bất biến, nguồn, locator"]
+            QA["qa + approval<br/>report/finding theo version<br/>duyệt không đồng nghĩa đã phát hành"]
+        end
+        subgraph CROSS["Cắt ngang"]
+            EVT["event bus + activity_log<br/>ghi cùng transaction, phát sau commit<br/>SSE replay / snapshot, lọc scope"]
+            USAGE["usage + budget<br/>reserve / settle, tránh cộng trùng"]
+        end
+        WORKER["Async Worker Pool<br/>chạy task nền, tách khỏi request"]
+    end
+
+    subgraph DATA["MariaDB đã chọn; lưu trữ bổ trợ còn đề xuất"]
+        DB[("MariaDB + Flyway<br/>BASE-01; vector / KB còn OPEN")]
+        REDIS[("Redis<br/>queue / cache / lock bổ trợ")]
+        S3[("MinIO / S3<br/>file, anh, PDF private")]
+    end
+    subgraph EXT["Dịch vụ ngoài - ứng viên, chưa xác minh connector"]
+        LLM["LLM Provider<br/>Claude / OpenAI / Gemini"]
+        SEARCH["Search API<br/>Tavily / Brave / Serper"]
+        GOOGLE["Google<br/>Drive, Sheets, Gmail, GA4"]
+        DESIGN["Canva + Image Gen"]
+        ADS["Google Ads / Meta Ads"]
+        CMS["CMS / WordPress"]
+    end
+
+    UI -->|"HTTPS REST + SSE"| API
+    API --> AUTH
+    API --> WSP
+    API -->|"lưu task gốc"| TASK
+    API --> ARTI
+    API --> QA
+    TASK --> WORKER
+    WORKER -->|"task lập kế hoạch"| ORCH
+    ORCH -->|"validate và lưu DAG"| TASK
+    WORKER --> RUNTIME
+    ORCH -->|"Planner qua runtime"| RUNTIME
+    RUNTIME --> AGENTS
+    RUNTIME --> SKILLS
+    RUNTIME --> KB
+    RUNTIME --> ARTI
+    ARTI -->|"version sẵn sàng review"| QA
+    QA -->|"report / revision qua state machine"| TASK
+    TASK -.-> EVT
+    RUNTIME -.-> EVT
+    QA -.-> EVT
+    RUNTIME -.-> USAGE
+    EVT -->|"SSE sau commit"| API
+    RUNTIME --> LLM
+    SKILLS --> SEARCH
+    SKILLS --> GOOGLE
+    SKILLS --> DESIGN
+    SKILLS --> ADS
+    SKILLS --> CMS
+    BACKEND --> DB
+    WORKER --> REDIS
+    ARTI --> S3
+    KB -.->|"mapping retrieval chưa triển khai"| DB

@@ -1,0 +1,51 @@
+{
+  "contract_version": "0.1",
+  "workspace_id": "ws-synthetic",
+  "project_id": "project-synthetic",
+  "workflow_id": "wf-content-synthetic",
+  "task_id": "task-editorial-synthetic",
+  "agent_id": "editorial-writer",
+  "skill_id": "longform-writing",
+  "objective": "Viết bài chuyên đề minh họa từ research pack synthetic; không phát hành.",
+  "input_artifacts": [
+    {
+      "artifact_id": "research-pack-synthetic",
+      "version": 1
+    },
+    {
+      "artifact_id": "brand-guideline-synthetic",
+      "version": 1
+    }
+  ],
+  "depends_on": [
+    "task-research-synthetic"
+  ],
+  "expected_outputs": [
+    {
+      "type": "article",
+      "language": "vi",
+      "format": "markdown",
+      "source_required": true
+    }
+  ],
+  "acceptance_criteria": [
+    "Claim quan trọng có source + locator hoặc được đánh dấu chưa xác minh.",
+    "Đúng brand-guideline-synthetic v1; có headline và CTA.",
+    "Không gửi hoặc phát hành ra ngoài."
+  ],
+  "gate_policy": {
+    "qa_required": true,
+    "approval_required": true,
+    "approval_capability": "content.approve"
+  },
+  "limits": {
+    "max_runtime_seconds": 300,
+    "max_retries": 2,
+    "max_revisions": 2,
+    "max_cost": 1,
+    "currency": "USD"
+  },
+  "due_at": "2026-10-27T17:00:00+07:00",
+  "status": "READY",
+  "task_version": 3
+}

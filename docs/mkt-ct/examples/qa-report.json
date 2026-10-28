@@ -1,0 +1,45 @@
+{
+  "contract_version": "0.1",
+  "fixture_type": "synthetic_documentation_only",
+  "workspace_id": "ws-synthetic",
+  "project_id": "project-synthetic",
+  "task_id": "task-editorial-synthetic",
+  "qa_task_id": "task-qa-synthetic",
+  "qa_run_id": "run-qa-synthetic-1",
+  "qa_agent_id": "qa-compliance",
+  "qa_report_id": "qa-report-synthetic-01",
+  "artifact_id": "article-synthetic",
+  "version": 1,
+  "checksum": null,
+  "rule_set_version": "synthetic-rules-0.1",
+  "verdict": "NOT_VERIFIED",
+  "findings": [
+    {
+      "finding_id": "finding-synthetic-01",
+      "claim_id": "claim-synthetic-01",
+      "category": "FACT",
+      "severity": "BLOCKER",
+      "content_locator": "body.section-2.paragraph-1",
+      "evidence": {
+        "source_id": "source-synthetic-01",
+        "source_code": "SRC-001",
+        "location_ref": "Mục 2, đoạn 1",
+        "source_checked": false
+      },
+      "description": "Nguồn chỉ là fixture reference; chưa có nội dung nguồn thật để đối chiếu.",
+      "revision_request": "Bổ sung nguồn kiểm chứng được hoặc bỏ/ghi nhãn claim theo policy, rồi review version tương ứng.",
+      "resolved": false,
+      "revision_task_id": null,
+      "resolved_in_version_id": null
+    }
+  ],
+  "proposed_next_action": {
+    "type": "REQUEST_INPUT",
+    "target_task_state": "WAITING_INPUT"
+  },
+  "limitations": [
+    "Ví dụ minh họa shape và chặn gate, không phải QA run hoặc agent_run đã thực thi.",
+    "Checksum chỉ được backend tính/khóa khi file thực có; null không được dùng làm khóa approve.",
+    "Chưa có approval; không được suy ra PUBLISHED hoặc đã gửi ra ngoài."
+  ]
+}

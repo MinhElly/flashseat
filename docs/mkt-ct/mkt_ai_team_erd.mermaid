@@ -1,0 +1,394 @@
+erDiagram
+    %% PROPOSED v0.2, 2026-10-27. Logical model, NOT migration DDL.
+    %% 27 tables = existing USERS + 26 proposed tables, 7 groups.
+    %% USERS mirrors current User entity. New user FKs stay BIGINT.
+    %% Composite constraints, tenancy and full enums: documents 04, 05, 14.
+
+    %% 1. IDENTITY AND WORKSPACE: 5
+    USERS {
+        bigint id PK "existing Long IDENTITY - keep"
+        string full_name
+        string email UK
+        string password_hash
+        string role "existing CUSTOMER ORGANIZER ADMIN - keep"
+        string status "existing UserStatus - keep"
+        timestamp created_at
+        timestamp updated_at
+    }
+    WORKSPACE {
+        uuid id PK
+        string name
+        string slug UK
+        bigint owner_id FK
+        timestamptz created_at
+    }
+    WORKSPACE_MEMBER {
+        uuid id PK
+        uuid workspace_id FK
+        bigint user_id FK
+        string role "ADMIN MANAGER MEMBER VIEWER"
+        boolean can_approve
+    }
+    PROJECT {
+        uuid id PK
+        uuid workspace_id FK
+        uuid brand_profile_id FK
+        string name
+        text objective
+        string status
+        date start_date
+        timestamptz deadline
+        bigint token_budget
+        decimal cost_budget
+        string currency
+    }
+    BRAND_PROFILE {
+        uuid id PK
+        uuid workspace_id FK
+        string name
+        text tone_of_voice
+        jsonb guideline
+        jsonb forbidden_terms
+        jsonb languages
+    }
+
+    %% 2. AGENT AND SKILL REGISTRY: 5
+    AGENT {
+        uuid id PK
+        string code UK "11 canonical codes in catalog 03"
+        string name
+        string role_group
+        string llm_model "default - actual model pinned in run"
+        decimal temperature
+        boolean active
+    }
+    AGENT_PROMPT_VERSION {
+        uuid id PK
+        uuid agent_id FK
+        int version
+        text system_prompt
+        jsonb input_schema
+        jsonb output_schema
+        boolean is_current
+        timestamptz created_at
+    }
+    SKILL {
+        uuid id PK
+        string code UK
+        string name
+        string kind "BUSINESS_SKILL or TOOL"
+        string type "INTERNAL or EXTERNAL"
+        jsonb input_schema
+        jsonb output_schema
+        jsonb policy
+        boolean requires_approval
+        boolean active
+    }
+    AGENT_SKILL {
+        uuid agent_id PK,FK
+        uuid skill_id PK,FK
+        boolean enabled
+        jsonb scope_policy
+    }
+    INTEGRATION_CREDENTIAL {
+        uuid id PK
+        uuid workspace_id FK
+        string provider
+        string account_ref
+        text encrypted_token
+        text encrypted_refresh
+        string secret_ref
+        string encryption_key_version
+        timestamptz expires_at
+        jsonb scopes
+    }
+
+    %% 3. TASK ENGINE: 4
+    TASK {
+        uuid id PK
+        uuid project_id FK
+        uuid parent_task_id FK "nullable root; workflow_id derives from root"
+        uuid assigned_agent_id FK "nullable before assignment"
+        bigint created_by_user FK "nullable for service-created task"
+        string title
+        string task_kind "PLAN PRODUCTION QA ACTION MERGE"
+        jsonb input
+        string status "canonical enum in document 04"
+        int task_version
+        int priority
+        int attempt
+        int retry_count
+        int revision_count
+        string idempotency_key "unique with project_id"
+        string request_hash
+        jsonb gate_policy
+        jsonb limits
+        jsonb checkpoint
+        string lease_owner
+        timestamptz lease_expires_at
+        bigint fencing_token
+        timestamptz deadline
+        timestamptz started_at
+        timestamptz finished_at
+    }
+    TASK_DEPENDENCY {
+        uuid task_id PK,FK
+        uuid depends_on_task_id PK,FK
+    }
+    AGENT_RUN {
+        uuid id PK
+        uuid task_id FK
+        uuid agent_id FK
+        uuid prompt_version_id FK
+        int attempt
+        int invocation_no
+        string model
+        jsonb config_snapshot
+        jsonb context_refs
+        text request_payload "optional redacted payload"
+        text response_payload "optional redacted payload"
+        int input_tokens
+        int output_tokens
+        decimal cost
+        string currency
+        string usage_measurement "actual estimated unknown"
+        int latency_ms
+        string status
+        timestamptz created_at
+    }
+    TOOL_CALL {
+        uuid id PK
+        uuid agent_run_id FK
+        uuid skill_id FK "kind TOOL"
+        uuid integration_credential_id FK "nullable for internal tool"
+        uuid approval_id FK "nullable when policy permits"
+        jsonb arguments "redacted"
+        jsonb result "redacted"
+        string status
+        string idempotency_key
+        string action_digest
+        string external_operation_id
+        int latency_ms
+    }
+
+    %% 4. ARTIFACT AND SOURCE: 5
+    ARTIFACT {
+        uuid id PK
+        uuid project_id FK
+        uuid task_id FK
+        uuid created_by_agent FK
+        string type
+        string title
+        string status "DRAFT IN_QA APPROVED PUBLISHED"
+        uuid current_version_id FK "nullable; version must belong to this artifact"
+    }
+    ARTIFACT_VERSION {
+        uuid id PK
+        uuid artifact_id FK
+        int version_no
+        jsonb content
+        string file_ref "private object reference, not public URL"
+        string checksum
+        jsonb input_provenance
+        uuid agent_run_id FK
+        timestamptz created_at
+    }
+    SOURCE {
+        uuid id PK
+        uuid project_id FK
+        string source_code "SRC-001 unique within project"
+        string origin_type
+        string url
+        string title
+        string publisher
+        date published_date
+        timestamptz accessed_at
+        string license
+        string usage_rights_status
+        decimal reliability_score
+        string raw_file_ref "storage object, no missing file-table FK"
+        string snapshot_checksum
+    }
+    CLAIM {
+        uuid id PK
+        uuid artifact_version_id FK
+        text claim_text
+        string content_locator
+        string claim_type "FACT STAT QUOTE CALCULATION ASSUMPTION FORECAST"
+        string verify_status "SUPPORTED CONTRADICTED NOT_VERIFIED"
+    }
+    CLAIM_SOURCE {
+        uuid claim_id PK,FK
+        uuid source_id PK,FK
+        string location_ref PK "normalized page paragraph or cell"
+        text excerpt
+        string evidence_relation "SUPPORTS CONTRADICTS CONTEXT"
+    }
+
+    %% 5. QA AND APPROVAL: 3
+    QA_REPORT {
+        uuid id PK
+        uuid artifact_version_id FK
+        uuid qa_run_id FK "run by qa-compliance"
+        string rule_set_version
+        string result "PASS FAIL NOT_VERIFIED NOT_APPLICABLE"
+        int fact_score
+        int brand_score
+        int rights_score
+        timestamptz created_at
+    }
+    QA_FINDING {
+        uuid id PK
+        uuid qa_report_id FK
+        string category
+        string severity
+        string content_locator
+        text description
+        text revision_request
+        uuid revision_task_id FK "nullable"
+        uuid resolved_in_version_id FK "nullable"
+        boolean resolved
+    }
+    APPROVAL {
+        uuid id PK
+        uuid project_id FK
+        uuid artifact_version_id FK "optional for action without artifact"
+        uuid task_id FK
+        uuid requested_by_agent FK
+        bigint decided_by_user FK "nullable while pending"
+        string action_type "CONTENT_ACCEPT PUBLISH SEND_EMAIL RUN_ADS"
+        string action_digest
+        jsonb target_scope
+        decimal budget_limit
+        string currency
+        string policy_version
+        string decision "PENDING APPROVED REJECTED EXPIRED REVOKED"
+        text comment
+        timestamptz expires_at
+        timestamptz decided_at
+    }
+
+    %% 6. KNOWLEDGE AND MEMORY: 3
+    KNOWLEDGE_DOCUMENT {
+        uuid id PK
+        uuid workspace_id FK
+        uuid project_id FK "nullable for workspace library"
+        string title
+        string doc_type
+        string file_ref
+        string status
+    }
+    KNOWLEDGE_CHUNK {
+        uuid id PK
+        uuid document_id FK
+        int chunk_index
+        text content
+        vector embedding
+        string embedding_model
+        jsonb metadata
+    }
+    AGENT_MEMORY {
+        uuid id PK
+        uuid project_id FK
+        uuid agent_id FK
+        string memory_type
+        text content
+        vector embedding
+        jsonb provenance
+        timestamptz created_at
+    }
+
+    %% 7. REALTIME, AUDIT, COST: 2
+    ACTIVITY_LOG {
+        uuid id PK "event_id"
+        uuid project_id FK
+        uuid agent_id FK "nullable"
+        bigint user_id FK "nullable"
+        uuid task_id FK "nullable"
+        string actor_type
+        string actor_ref
+        string event_type
+        int task_version
+        string correlation_id
+        jsonb payload "redacted and scope-filtered"
+        timestamptz created_at
+        timestamptz dispatched_at "nullable pending delivery"
+        int dispatch_attempts
+    }
+    USAGE_LEDGER {
+        uuid id PK
+        uuid workspace_id FK
+        uuid project_id FK
+        uuid task_id FK
+        uuid agent_run_id FK "nullable for pre-run reservation"
+        string entry_key UK
+        string entry_kind "RESERVE SETTLE RELEASE ADJUST"
+        string reservation_key
+        bigint tokens "nullable if unknown"
+        decimal cost "nullable if unknown"
+        string currency
+        string measurement "actual estimated unknown"
+        date usage_date
+    }
+
+    %% RELATIONSHIPS: all named FK endpoints; optional parents shown explicitly.
+    USERS ||--o{ WORKSPACE : owns
+    USERS ||--o{ WORKSPACE_MEMBER : joins
+    WORKSPACE ||--o{ WORKSPACE_MEMBER : has_members
+    WORKSPACE ||--o{ PROJECT : contains
+    WORKSPACE ||--o{ BRAND_PROFILE : owns_brand
+    BRAND_PROFILE ||--o{ PROJECT : applies_to
+    WORKSPACE ||--o{ INTEGRATION_CREDENTIAL : connects
+    WORKSPACE ||--o{ KNOWLEDGE_DOCUMENT : stores
+
+    AGENT ||--o{ AGENT_PROMPT_VERSION : has_versions
+    AGENT ||--o{ AGENT_SKILL : allowed_capability
+    SKILL ||--o{ AGENT_SKILL : granted_to
+    PROJECT ||--o{ TASK : has_tasks
+    TASK |o--o{ TASK : parent_of
+    AGENT |o--o{ TASK : assigned_to
+    USERS |o--o{ TASK : initiated_by
+    TASK ||--o{ TASK_DEPENDENCY : waiting_task
+    TASK ||--o{ TASK_DEPENDENCY : prerequisite_task
+    TASK ||--o{ AGENT_RUN : invokes
+    AGENT ||--o{ AGENT_RUN : executes
+    AGENT_PROMPT_VERSION ||--o{ AGENT_RUN : pins_prompt
+    AGENT_RUN ||--o{ TOOL_CALL : calls
+    SKILL ||--o{ TOOL_CALL : tool_definition
+    INTEGRATION_CREDENTIAL |o--o{ TOOL_CALL : authorized_account
+    APPROVAL |o--o{ TOOL_CALL : permits_action
+
+    PROJECT ||--o{ ARTIFACT : delivers
+    TASK ||--o{ ARTIFACT : produces
+    AGENT ||--o{ ARTIFACT : authored_by
+    ARTIFACT ||--o{ ARTIFACT_VERSION : has_versions
+    ARTIFACT |o--o| ARTIFACT_VERSION : current_version
+    AGENT_RUN ||--o{ ARTIFACT_VERSION : generated_by
+    PROJECT ||--o{ SOURCE : registers
+    ARTIFACT_VERSION ||--o{ CLAIM : contains_claim
+    CLAIM ||--o{ CLAIM_SOURCE : cites
+    SOURCE ||--o{ CLAIM_SOURCE : evidence_for
+
+    ARTIFACT_VERSION ||--o{ QA_REPORT : reviewed_as
+    AGENT_RUN ||--o{ QA_REPORT : qa_run
+    QA_REPORT ||--o{ QA_FINDING : findings
+    TASK |o--o{ QA_FINDING : revision_task
+    ARTIFACT_VERSION |o--o{ QA_FINDING : resolved_in_version
+    PROJECT ||--o{ APPROVAL : scopes_approval
+    ARTIFACT_VERSION |o--o{ APPROVAL : reviewed_version
+    TASK ||--o{ APPROVAL : requests_decision
+    AGENT ||--o{ APPROVAL : requested_by
+    USERS |o--o{ APPROVAL : decided_by
+
+    PROJECT |o--o{ KNOWLEDGE_DOCUMENT : project_scope
+    KNOWLEDGE_DOCUMENT ||--o{ KNOWLEDGE_CHUNK : chunks
+    PROJECT ||--o{ AGENT_MEMORY : isolates_memory
+    AGENT ||--o{ AGENT_MEMORY : remembers
+    PROJECT ||--o{ ACTIVITY_LOG : records
+    AGENT |o--o{ ACTIVITY_LOG : agent_actor
+    USERS |o--o{ ACTIVITY_LOG : user_actor
+    TASK |o--o{ ACTIVITY_LOG : task_context
+    WORKSPACE ||--o{ USAGE_LEDGER : accounts_usage
+    PROJECT ||--o{ USAGE_LEDGER : budgets_usage
+    TASK ||--o{ USAGE_LEDGER : task_usage
+    AGENT_RUN |o--o{ USAGE_LEDGER : run_usage

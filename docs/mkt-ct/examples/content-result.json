@@ -1,0 +1,69 @@
+{
+  "contract_version": "0.1",
+  "task_id": "task-editorial-synthetic",
+  "run_id": "run-editorial-synthetic-1",
+  "agent_id": "editorial-writer",
+  "attempt": 1,
+  "run_status": "SUCCEEDED",
+  "output_artifacts": [
+    {
+      "artifact_id": "article-synthetic",
+      "version": 1,
+      "type": "article",
+      "title": "Bài chuyên đề minh họa",
+      "language": "vi",
+      "file_ref": "synthetic/article-v1.md",
+      "input_artifacts": [
+        {
+          "artifact_id": "research-pack-synthetic",
+          "version": 1
+        },
+        {
+          "artifact_id": "brand-guideline-synthetic",
+          "version": 1
+        }
+      ],
+      "source_refs": [
+        {
+          "source_id": "source-synthetic-01",
+          "locator": "Mục 2, đoạn 1"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "claim-synthetic-01",
+          "claim_text": "Trong bộ fixture, nhóm A có 12 mục.",
+          "claim_type": "STAT",
+          "content_locator": "body.section-2.paragraph-1",
+          "evidence_status": "NOT_VERIFIED",
+          "source_refs": [
+            {
+              "source_id": "source-synthetic-01",
+              "source_code": "SRC-001",
+              "location_ref": "Mục 2, đoạn 1",
+              "excerpt": "Nhóm A: 12 mục. Dữ liệu tổng hợp minh họa."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "assumptions": [
+    "Toàn bộ ID và dữ liệu là synthetic để review contract."
+  ],
+  "unresolved_items": [
+    "Chưa có QAReport hoặc Approval; run thành công không hoàn tất task."
+  ],
+  "usage": {
+    "measurement": "unknown",
+    "input_tokens": null,
+    "output_tokens": null,
+    "cost": null,
+    "currency": "USD"
+  },
+  "proposed_next_action": {
+    "type": "REQUEST_QA",
+    "artifact_id": "article-synthetic",
+    "version": 1
+  }
+}

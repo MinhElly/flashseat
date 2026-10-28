@@ -1,0 +1,15 @@
+{
+  "contract_version": "0.1",
+  "error": {
+    "code": "VERSION_CONFLICT",
+    "message": "Task đã thay đổi; đọc snapshot mới trước khi cập nhật.",
+    "retryable": false,
+    "details": {
+      "task_id": "task-editorial-synthetic",
+      "expected_task_version": 3,
+      "current_task_version": 5,
+      "recovery": "REFRESH_TASK_SNAPSHOT"
+    }
+  },
+  "correlation_id": "correlation-synthetic"
+}
