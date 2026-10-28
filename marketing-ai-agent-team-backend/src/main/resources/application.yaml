@@ -1,0 +1,35 @@
+spring:
+  config:
+    import: "optional:file:./.env[.properties]"
+  application:
+    name: marketing-ai-agent-team
+  datasource:
+    url: jdbc:mariadb://localhost:3307/marketing_ai_agent_team_db
+    username: ${DB_USERNAME:marketing_ai_agent_team}
+    password: ${DB_PASSWORD:marketing_ai_agent_team123}
+    driver-class-name: org.mariadb.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration/mariadb
+    validate-migration-naming: true
+    fail-on-missing-locations: true
+    baseline-on-migrate: false
+    clean-disabled: true
+  app:
+    jwt:
+      secret-base64: ${JWT_SECRET_BASE64}
+      access-token-minutes: 30
+
+logging:
+  level:
+    org.hibernate.orm.connections.pooling: WARN
